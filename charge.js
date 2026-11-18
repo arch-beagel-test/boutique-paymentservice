@@ -15,6 +15,7 @@
 const cardValidator = require('simple-card-validator');
 const { v4: uuidv4 } = require('uuid');
 const pino = require('pino');
+const markPaid = require('./checkout_client');
 
 const logger = pino({
   name: 'paymentservice-charge',
@@ -82,5 +83,7 @@ module.exports = function charge (request) {
   logger.info(`Transaction processed: ${cardType} ending ${cardNumber.substr(-4)} \
     Amount: ${amount.currency_code}${amount.units}.${amount.nanos}`);
 
-  return { transaction_id: uuidv4() };
+  const transactionId = uuidv4();
+  markPaid(request.order_id, transactionId);
+  return { transaction_id: transactionId };
 };
