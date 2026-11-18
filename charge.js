@@ -59,6 +59,21 @@ class ExpiredCreditCard extends CreditCardError {
  * @return transaction_id - a random uuid.
  */
 module.exports = function charge (request) {
+  try {
+    return chargeCard(request);
+  } catch (err) {
+    if (err instanceof CreditCardError) {
+      // cross/0005: never log the card number, only its last four digits.
+      const { amount, credit_card: cc } = request;
+      logger.warn(`Charge declined: ${err.message} | card ending ${String(cc.credit_card_number).slice(-4)} \
+expiry ${cc.credit_card_expiration_month}/${cc.credit_card_expiration_year} \
+amount ${amount.currency_code}${amount.units}.${amount.nanos}`);
+    }
+    throw err;
+  }
+};
+
+function chargeCard (request) {
   const { amount, credit_card: creditCard } = request;
   const cardNumber = creditCard.credit_card_number;
   const cardInfo = cardValidator(cardNumber);
@@ -83,4 +98,4 @@ module.exports = function charge (request) {
     Amount: ${amount.currency_code}${amount.units}.${amount.nanos}`);
 
   return { transaction_id: uuidv4() };
-};
+}
